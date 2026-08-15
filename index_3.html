@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Training Log</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Training Log">
+<meta name="theme-color" content="#0e1014">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%236ee7f2'/%3E%3Cstop offset='50%25' stop-color='%23b38af0'/%3E%3Cstop offset='100%25' stop-color='%23f4c56b'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='180' height='180' rx='40' fill='%23171a20'/%3E%3Ccircle cx='90' cy='90' r='58' fill='none' stroke='url(%23g)' stroke-width='10'/%3E%3Ctext x='90' y='104' font-family='Arial' font-weight='700' font-size='54' fill='%23eef1f5' text-anchor='middle'%3ETL%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  html, body { margin:0; padding:0; background:#0e1014; min-height:100vh; }
+  body { padding: calc(env(safe-area-inset-top, 0px) + 56px) 16px calc(env(safe-area-inset-bottom, 0px) + 88px); -webkit-tap-highlight-color: transparent; }
+</style>
+</head>
+<body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/canvas-confetti/1.9.2/confetti.browser.min.js"></script>
+<div id="training-log-root">
+  <h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">Training log: track daily quests for protein, workout, sleep and focus work to earn XP, build streaks, unlock badges, and catch Pokemon.</h2>
+
+  <div id="tab-training" style="max-width:680px;margin:0 auto;font-family:'Rajdhani',var(--font-sans, sans-serif);">
+
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding:16px 20px;background:#171a20;border-radius:14px;border:1px solid #2a2f38;">
+      <div id="level-badge" style="flex-shrink:0;width:56px;height:56px;border-radius:50%;background:conic-gradient(from 0deg,#6ee7f2,#b38af0,#f4c56b,#6ee7f2);display:flex;align-items:center;justify-content:center;">
+        <div style="width:48px;height:48px;border-radius:50%;background:#171a20;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+          <span style="font-size:9px;color:#93a0b0;letter-spacing:0.5px;">LVL</span>
+          <span id="level-num" style="font-size:18px;font-weight:700;color:#eef1f5;line-height:1;">1</span>
+        </div>
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+          <span style="font-size:14px;font-weight:600;color:#eef1f5;letter-spacing:0.3px;">TRAINING LOG</span>
+          <span id="xp-label" style="font-size:12px;color:#93a0b0;">0 / 150 XP</span>
+        </div>
+        <div style="height:8px;border-radius:4px;background:#2a2f38;overflow:hidden;">
+          <div id="xp-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#2dd4bf,#6ee7f2);transition:width .4s ease;"></div>
+        </div>
+      </div>
+      <div style="flex-shrink:0;text-align:center;padding-left:12px;border-left:1px solid #2a2f38;">
+        <div id="streak-num" style="font-size:22px;font-weight:700;color:#f4c56b;line-height:1;">0</div>
+        <div style="font-size:10px;color:#93a0b0;letter-spacing:0.5px;">DAY STREAK</div>
+      </div>
+    </div>
+
+    <div id="ball-tier-note" style="font-size:11px;color:#93a0b0;margin:-12px 0 20px;padding-left:2px;"></div>
+
+    <div style="font-size:12px;font-weight:600;color:#93a0b0;letter-spacing:0.8px;margin-bottom:10px;">TODAY'S QUESTS</div>
+    <div id="quest-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px;"></div>
+
+    <div style="font-size:12px;font-weight:600;color:#93a0b0;letter-spacing:0.8px;margin-bottom:10px;">WEEKLY BOSS</div>
+    <div id="boss-card" style="margin-bottom:24px;"></div>
+
+    <div style="font-size:12px;font-weight:600;color:#93a0b0;letter-spacing:0.8px;margin-bottom:10px;">CARD COLLECTION</div>
+    <div id="badge-strip" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:10px;margin-bottom:24px;"></div>
+
+    <div style="font-size:12px;font-weight:600;color:#93a0b0;letter-spacing:0.8px;margin-bottom:10px;">XP HISTORY</div>
+    <div id="history-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+
+  </div>
+
+  <div id="tab-dex" style="display:none;max-width:680px;margin:0 auto;font-family:'Rajdhani',var(--font-sans, sans-serif);">
+    <div id="dex-gen1-wrap" style="margin-bottom:26px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">
+        <span style="font-size:13px;font-weight:600;color:#eef1f5;letter-spacing:0.4px;">GENERATION 1</span>
+        <span id="dex-gen1-count" style="font-size:12px;color:#93a0b0;">0 / 151</span>
+      </div>
+      <div style="height:8px;border-radius:4px;background:#2a2f38;overflow:hidden;margin-bottom:14px;">
+        <div id="dex-gen1-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#f4c56b,#e2555a);transition:width .4s ease;"></div>
+      </div>
+      <div id="dex-gen1-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px;"></div>
+    </div>
+    <div id="dex-gen2-wrap">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">
+        <span style="font-size:13px;font-weight:600;color:#eef1f5;letter-spacing:0.4px;">GENERATION 2</span>
+        <span id="dex-gen2-count" style="font-size:12px;color:#93a0b0;">0 / 100</span>
+      </div>
+      <div style="height:8px;border-radius:4px;background:#2a2f38;overflow:hidden;margin-bottom:14px;">
+        <div id="dex-gen2-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#f4c56b,#e2555a);transition:width .4s ease;"></div>
+      </div>
+      <div id="dex-gen2-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px;"></div>
+    </div>
+  </div>
+
+  <div id="tab-bar" style="position:fixed;left:0;right:0;bottom:0;display:flex;background:#12151a;border-top:1px solid #2a2f38;padding:8px 16px calc(env(safe-area-inset-bottom,0px) + 8px);gap:8px;z-index:500;">
+    <button id="tab-btn-training" onclick="switchTab('training')" style="flex:1;background:#1e232b;border:1px solid #3a4150;color:#eef1f5;border-radius:10px;padding:10px 0;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:13px;letter-spacing:0.4px;">TRAINING</button>
+    <button id="tab-btn-dex" onclick="switchTab('dex')" style="flex:1;background:transparent;border:1px solid #2a2f38;color:#93a0b0;border-radius:10px;padding:10px 0;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:13px;letter-spacing:0.4px;">POKEDEX</button>
+  </div>
+
+  <div id="reveal-overlay" style="display:none;position:fixed;inset:0;background:rgba(10,12,16,0.85);align-items:center;justify-content:center;z-index:9999;">
+    <div id="reveal-card" style="width:220px;height:300px;border-radius:16px;cursor:pointer;perspective:1000px;"></div>
+  </div>
+
+  <div id="ball-overlay" style="display:none;position:fixed;inset:0;background:rgba(10,12,16,0.85);align-items:center;justify-content:center;z-index:9999;flex-direction:column;">
+    <div id="ball-stage" style="width:140px;height:140px;position:relative;"></div>
+    <div id="ball-caption" style="margin-top:22px;font-size:13px;color:#93a0b0;text-align:center;min-height:40px;font-family:'Rajdhani',sans-serif;"></div>
+    <button id="ball-continue" style="display:none;margin-top:14px;background:#1e232b;border:1px solid #3a4150;color:#eef1f5;border-radius:10px;padding:10px 24px;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:13px;">Continue</button>
+  </div>
+</div>
+
+<style>
+  #training-log-root * { box-sizing: border-box; }
+  #training-log-root button { font-family: inherit; }
+  .quest-card { position:relative; background:#171a20; border:1px solid #2a2f38; border-radius:12px; padding:14px 12px; cursor:pointer; transition:transform .15s ease, border-color .15s ease; }
+  .quest-card:hover { transform: translateY(-2px); border-color:#3a4150; }
+  .quest-card.done { border-color: var(--rc,#2dd4bf); background:#181f1d; }
+  .quest-icon { font-size:20px; margin-bottom:8px; display:block; }
+  .quest-name { font-size:13px; font-weight:600; color:#eef1f5; margin-bottom:2px; }
+  .quest-xp { font-size:11px; color:#93a0b0; }
+  .quest-check { position:absolute; top:10px; right:10px; width:18px; height:18px; border-radius:50%; border:1.5px solid #3a4150; display:flex; align-items:center; justify-content:center; }
+  .quest-card.done .quest-check { background: var(--rc,#2dd4bf); border-color: var(--rc,#2dd4bf); }
+  .badge-slot { aspect-ratio:2/3; border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; font-size:10px; text-align:center; padding:6px; }
+  .badge-slot.locked { background:#171a20; border:1px dashed #2a2f38; color:#4a5160; }
+  .badge-slot.unlocked { border:1px solid transparent; color:#171a20; font-weight:700; }
+  @keyframes shimmer { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
+
+  .dex-card { position:relative; background:#f2f0ea; border-radius:10px; padding:8px 6px 6px; text-align:center; }
+  .dex-card.uncaught { background:#181c22; border:1px solid #2a2f38; }
+  .dex-num { font-family:'Press Start 2P', monospace; font-size:9px; color:#5a5650; margin-top:4px; }
+  .dex-card.uncaught .dex-num { color:#4a5160; }
+  .dex-name { font-size:11px; font-weight:600; color:#22242a; margin-top:2px; }
+  .dex-card.uncaught .dex-name { color:#4a5160; }
+  .dex-count { position:absolute; bottom:4px; right:6px; font-size:9px; color:#8a877e; font-weight:600; }
+  .dex-sparkle { position:absolute; top:4px; right:6px; font-size:12px; color:#f4c56b; }
+  .dex-shiny-thumb { position:absolute; top:2px; left:2px; width:22px; height:22px; }
+
+  @keyframes ballDrop { 0% { transform: translateY(-220px); } 65% { transform: translateY(14px); } 82% { transform: translateY(-6px); } 100% { transform: translateY(0); } }
+  @keyframes ballShake { 0%,100% { transform: translateX(0) rotate(0deg); } 25% { transform: translateX(-9px) rotate(-14deg); } 75% { transform: translateX(9px) rotate(14deg); } }
+  @keyframes flashPulse { 0% { opacity:0; } 45% { opacity:1; } 100% { opacity:0; } }
+  @keyframes ballPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(244,197,107,0.5); } 50% { box-shadow: 0 0 0 10px rgba(244,197,107,0); } }
+  @keyframes sparkleSpin { 0% { transform: rotate(0deg) scale(1); } 50% { transform: rotate(180deg) scale(1.2); } 100% { transform: rotate(360deg) scale(1); } }
+  .ball-drop-anim { animation: ballDrop .6s cubic-bezier(.34,1.56,.64,1) forwards; }
+  .ball-ready { animation: ballPulse 1.4s ease-in-out infinite; }
+  .ball-shake-anim { animation: ballShake .35s ease-in-out 3; }
+  .ball-flash { position:absolute; inset:0; border-radius:50%; background:#fff; opacity:0; animation: flashPulse .5s ease-out forwards; }
+</style>
+
+<script>
+(function(){
+  var STORE_KEY = 'training-log-state';
+  var QUESTS = [
+    {id:'protein', name:'Protein', xp:20, icon:'\u25C9', color:'#2dd4bf'},
+    {id:'workout', name:'Workout', xp:30, icon:'\u25B2', color:'#5b9df0'},
+    {id:'sleep', name:'Sleep', xp:15, icon:'\u25D0', color:'#a78bfa'},
+    {id:'focus', name:'Focus work', xp:15, icon:'\u2605', color:'#f4c56b'}
+  ];
+  var BADGES = [
+    {id:'bronze', streak:3, name:'3-day streak', bg:'linear-gradient(135deg,#8b6a3f,#c99b5f)'},
+    {id:'silver', streak:7, name:'7-day streak', bg:'linear-gradient(135deg,#8a94a3,#d4dae2)'},
+    {id:'gold', streak:14, name:'14-day streak', bg:'linear-gradient(135deg,#b8860b,#f4c56b)'},
+    {id:'legendary', streak:30, name:'30-day streak', bg:'linear-gradient(270deg,#6ee7f2,#b38af0,#f4c56b,#6ee7f2)', holo:true}
+  ];
+
+  var POKEDEX = [
+    [1,"Bulbasaur","C"],[2,"Ivysaur","R"],[3,"Venusaur","T"],[4,"Charmander","C"],[5,"Charmeleon","R"],
+    [6,"Charizard","T"],[7,"Squirtle","C"],[8,"Wartortle","R"],[9,"Blastoise","T"],[10,"Caterpie","C"],
+    [11,"Metapod","R"],[12,"Butterfree","T"],[13,"Weedle","C"],[14,"Kakuna","R"],[15,"Beedrill","T"],
+    [16,"Pidgey","C"],[17,"Pidgeotto","R"],[18,"Pidgeot","T"],[19,"Rattata","C"],[20,"Raticate","T"],
+    [21,"Spearow","C"],[22,"Fearow","T"],[23,"Ekans","C"],[24,"Arbok","T"],[25,"Pikachu","R"],
+    [26,"Raichu","T"],[27,"Sandshrew","C"],[28,"Sandslash","T"],[29,"Nidoran F","C"],[30,"Nidorina","R"],
+    [31,"Nidoqueen","T"],[32,"Nidoran M","C"],[33,"Nidorino","R"],[34,"Nidoking","T"],[35,"Clefairy","R"],
+    [36,"Clefable","T"],[37,"Vulpix","C"],[38,"Ninetales","T"],[39,"Jigglypuff","R"],[40,"Wigglytuff","T"],
+    [41,"Zubat","C"],[42,"Golbat","R"],[43,"Oddish","C"],[44,"Gloom","R"],[45,"Vileplume","T"],
+    [46,"Paras","C"],[47,"Parasect","T"],[48,"Venonat","C"],[49,"Venomoth","T"],[50,"Diglett","C"],
+    [51,"Dugtrio","T"],[52,"Meowth","C"],[53,"Persian","T"],[54,"Psyduck","C"],[55,"Golduck","T"],
+    [56,"Mankey","C"],[57,"Primeape","T"],[58,"Growlithe","C"],[59,"Arcanine","T"],[60,"Poliwag","C"],
+    [61,"Poliwhirl","R"],[62,"Poliwrath","T"],[63,"Abra","C"],[64,"Kadabra","R"],[65,"Alakazam","T"],
+    [66,"Machop","C"],[67,"Machoke","R"],[68,"Machamp","T"],[69,"Bellsprout","C"],[70,"Weepinbell","R"],
+    [71,"Victreebel","T"],[72,"Tentacool","C"],[73,"Tentacruel","T"],[74,"Geodude","C"],[75,"Graveler","R"],
+    [76,"Golem","T"],[77,"Ponyta","C"],[78,"Rapidash","T"],[79,"Slowpoke","C"],[80,"Slowbro","T"],
+    [81,"Magnemite","C"],[82,"Magneton","T"],[83,"Farfetchd","C"],[84,"Doduo","C"],[85,"Dodrio","T"],
+    [86,"Seel","C"],[87,"Dewgong","T"],[88,"Grimer","C"],[89,"Muk","T"],[90,"Shellder","C"],
+    [91,"Cloyster","T"],[92,"Gastly","C"],[93,"Haunter","R"],[94,"Gengar","T"],[95,"Onix","C"],
+    [96,"Drowzee","C"],[97,"Hypno","T"],[98,"Krabby","C"],[99,"Kingler","T"],[100,"Voltorb","C"],
+    [101,"Electrode","T"],[102,"Exeggcute","C"],[103,"Exeggutor","T"],[104,"Cubone","C"],[105,"Marowak","T"],
+    [106,"Hitmonlee","T"],[107,"Hitmonchan","T"],[108,"Lickitung","C"],[109,"Koffing","C"],[110,"Weezing","T"],
+    [111,"Rhyhorn","C"],[112,"Rhydon","T"],[113,"Chansey","C"],[114,"Tangela","C"],[115,"Kangaskhan","C"],
+    [116,"Horsea","C"],[117,"Seadra","R"],[118,"Goldeen","C"],[119,"Seaking","T"],[120,"Staryu","C"],
+    [121,"Starmie","T"],[122,"Mr Mime","C"],[123,"Scyther","C"],[124,"Jynx","T"],[125,"Electabuzz","T"],
+    [126,"Magmar","T"],[127,"Pinsir","C"],[128,"Tauros","C"],[129,"Magikarp","C"],[130,"Gyarados","T"],
+    [131,"Lapras","C"],[132,"Ditto","C"],[133,"Eevee","C"],[134,"Vaporeon","T"],[135,"Jolteon","T"],
+    [136,"Flareon","T"],[137,"Porygon","C"],[138,"Omanyte","C"],[139,"Omastar","T"],[140,"Kabuto","C"],
+    [141,"Kabutops","T"],[142,"Aerodactyl","C"],[143,"Snorlax","C"],[144,"Articuno","L"],[145,"Zapdos","L"],
+    [146,"Moltres","L"],[147,"Dratini","C"],[148,"Dragonair","R"],[149,"Dragonite","T"],[150,"Mewtwo","L"],
+    [151,"Mew","L"],
+    [152,"Chikorita","C"],[153,"Bayleef","R"],[154,"Meganium","T"],[155,"Cyndaquil","C"],[156,"Quilava","R"],
+    [157,"Typhlosion","T"],[158,"Totodile","C"],[159,"Croconaw","R"],[160,"Feraligatr","T"],[161,"Sentret","C"],
+    [162,"Furret","T"],[163,"Hoothoot","C"],[164,"Noctowl","T"],[165,"Ledyba","C"],[166,"Ledian","T"],
+    [167,"Spinarak","C"],[168,"Ariados","T"],[169,"Crobat","T"],[170,"Chinchou","C"],[171,"Lanturn","T"],
+    [172,"Pichu","C"],[173,"Cleffa","C"],[174,"Igglybuff","C"],[175,"Togepi","C"],[176,"Togetic","T"],
+    [177,"Natu","C"],[178,"Xatu","T"],[179,"Mareep","C"],[180,"Flaaffy","R"],[181,"Ampharos","T"],
+    [182,"Bellossom","T"],[183,"Marill","C"],[184,"Azumarill","T"],[185,"Sudowoodo","C"],[186,"Politoed","T"],
+    [187,"Hoppip","C"],[188,"Skiploom","R"],[189,"Jumpluff","T"],[190,"Aipom","C"],[191,"Sunkern","C"],
+    [192,"Sunflora","T"],[193,"Yanma","C"],[194,"Wooper","C"],[195,"Quagsire","T"],[196,"Espeon","T"],
+    [197,"Umbreon","T"],[198,"Murkrow","C"],[199,"Slowking","T"],[200,"Misdreavus","C"],[201,"Unown","R"],
+    [202,"Wobbuffet","C"],[203,"Girafarig","C"],[204,"Pineco","C"],[205,"Forretress","T"],[206,"Dunsparce","C"],
+    [207,"Gligar","C"],[208,"Steelix","T"],[209,"Snubbull","C"],[210,"Granbull","T"],[211,"Qwilfish","C"],
+    [212,"Scizor","T"],[213,"Shuckle","C"],[214,"Heracross","C"],[215,"Sneasel","C"],[216,"Teddiursa","C"],
+    [217,"Ursaring","T"],[218,"Slugma","C"],[219,"Magcargo","T"],[220,"Swinub","C"],[221,"Piloswine","T"],
+    [222,"Corsola","C"],[223,"Remoraid","C"],[224,"Octillery","T"],[225,"Delibird","C"],[226,"Mantine","C"],
+    [227,"Skarmory","C"],[228,"Houndour","C"],[229,"Houndoom","T"],[230,"Kingdra","T"],[231,"Phanpy","C"],
+    [232,"Donphan","T"],[233,"Porygon2","T"],[234,"Stantler","C"],[235,"Smeargle","C"],[236,"Tyrogue","C"],
+    [237,"Hitmontop","T"],[238,"Smoochum","C"],[239,"Elekid","C"],[240,"Magby","C"],[241,"Miltank","C"],
+    [242,"Blissey","T"],[243,"Raikou","L"],[244,"Entei","L"],[245,"Suicune","L"],[246,"Larvitar","C"],
+    [247,"Pupitar","R"],[248,"Tyranitar","T"],[249,"Lugia","L"],[250,"Ho-Oh","L"],[251,"Celebi","L"]
+  ].map(function(a){ return {id:a[0], name:a[1], tier:a[2]}; });
+
+  var TIER_POOLS = {C:[],R:[],T:[],L:[]};
+  POKEDEX.forEach(function(p){ TIER_POOLS[p.tier].push(p); });
+
+  var BALL_WEIGHTS = {
+    poke:   {label:'Poke Ball',   colorTop:'#ee5555', C:70, R:25, T:4,  L:1},
+    great:  {label:'Great Ball',  colorTop:'#4a90d9', C:55, R:33, T:10, L:2},
+    ultra:  {label:'Ultra Ball',  colorTop:'#2a2f38', C:40, R:35, T:20, L:5},
+    master: {label:'Master Ball', colorTop:'#a061e0', C:20, R:30, T:35, L:15}
+  };
+  var SHINY_CHANCE = 1/512;
+
+  function ballTierForStreak(streak){
+    if (streak >= 14) return 'master';
+    if (streak >= 7) return 'ultra';
+    if (streak >= 3) return 'great';
+    return 'poke';
+  }
+  function poolUnlockedForStreak(streak){ return streak >= 30; }
+
+  function spriteUrl(id, shiny){
+    return 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/' + (shiny ? 'shiny/' : '') + id + '.png';
+  }
+
+  function todayStr(d){
+    d = d || new Date();
+    var y = d.getFullYear();
+    var m = String(d.getMonth()+1).padStart(2,'0');
+    var day = String(d.getDate()).padStart(2,'0');
+    return y + '-' + m + '-' + day;
+  }
+  function weekStr(d){
+    d = d || new Date();
+    var onejan = new Date(d.getFullYear(),0,1);
+    var week = Math.ceil((((d - onejan) / 86400000) + onejan.getDay()+1)/7);
+    return d.getFullYear() + '-W' + week;
+  }
+  function daysBetween(a,b){ return Math.round((new Date(b) - new Date(a)) / 86400000); }
+
+  var state = null;
+
+  function defaultState(){
+    return {
+      xp: 0,
+      streak: 0,
+      lastActiveDate: null,
+      today: { date: todayStr(), protein:false, workout:false, sleep:false, focus:false, xpEarned:0 },
+      week: { id: weekStr(), weighIn: false },
+      badges: [],
+      history: [],
+      pokedex: {}
+    };
+  }
+
+  async function load(){
+    try {
+      var res = await window.storage.get(STORE_KEY, false);
+      state = res && res.value ? JSON.parse(res.value) : defaultState();
+    } catch(e) {
+      state = defaultState();
+    }
+    if (typeof state.today.xpEarned !== 'number') state.today.xpEarned = 0;
+    if (!Array.isArray(state.history)) state.history = [];
+    if (!state.pokedex) state.pokedex = {};
+    rolloverIfNeeded();
+    render();
+    renderDex();
+  }
+
+  async function save(){
+    try { await window.storage.set(STORE_KEY, JSON.stringify(state), false); }
+    catch(e) { console.error('Storage error', e); }
+  }
+
+  function rolloverIfNeeded(){
+    var today = todayStr();
+    if (state.today.date !== today) {
+      var allDone = state.today.protein && state.today.workout && state.today.sleep;
+      var gap = state.lastActiveDate ? daysBetween(state.lastActiveDate, today) : 99;
+      if (allDone && gap === 1) {
+        state.streak += 1;
+      } else if (gap > 1 || !allDone) {
+        state.streak = 0;
+      }
+      state.lastActiveDate = today;
+      var completed = QUESTS.filter(function(q){ return state.today[q.id]; }).map(function(q){ return q.id; });
+      state.history.unshift({ date: state.today.date, xp: state.today.xpEarned || 0, quests: completed });
+      if (state.history.length > 30) state.history = state.history.slice(0, 30);
+      state.today = { date: today, protein:false, workout:false, sleep:false, focus:false, xpEarned:0 };
+    }
+    var wk = weekStr();
+    if (state.week.id !== wk) {
+      state.week = { id: wk, weighIn: false };
+    }
+  }
+
+  function xpForLevel(lvl){ return 150 + (lvl-1)*20; }
+  function computeLevel(totalXp){
+    var lvl = 1, remaining = totalXp, req = xpForLevel(lvl);
+    while (remaining >= req) {
+      remaining -= req;
+      lvl++;
+      req = xpForLevel(lvl);
+    }
+    return { level: lvl, into: remaining, req: req };
+  }
+
+  function fireConfetti(){
+    if (typeof confetti !== 'function') return;
+    confetti({ particleCount: 40, spread: 55, startVelocity: 28, origin: { x: 0.5, y: 0.55 }, colors: ['#2dd4bf','#5b9df0','#a78bfa','#f4c56b'] });
+  }
+  function fireLevelUpConfetti(){
+    if (typeof confetti !== 'function') return;
+    var end = Date.now() + 1200;
+    (function frame(){
+      confetti({ particleCount: 6, angle: 60, spread: 60, origin: { x: 0, y: 0.4 }, colors: ['#6ee7f2','#b38af0','#f4c56b'] });
+      confetti({ particleCount: 6, angle: 120, spread: 60, origin: { x: 1, y: 0.4 }, colors: ['#6ee7f2','#b38af0','#f4c56b'] });
+      if (Date.now() < end) requestAnimationFrame(frame);
+    })();
+  }
+
+  function checkBadges(){
+    var newly = [];
+    BADGES.forEach(function(b){
+      if (state.streak >= b.streak && state.badges.indexOf(b.id) === -1) {
+        state.badges.push(b.id);
+        newly.push(b);
+      }
+    });
+    return newly;
+  }
+
+  function pickTier(ballKey, poolUnlocked){
+    var w = BALL_WEIGHTS[ballKey];
+    var tiers = poolUnlocked ? ['C','R','T','L'] : ['C','R'];
+    var total = 0;
+    tiers.forEach(function(t){ total += w[t]; });
+    var r = Math.random()*total;
+    var acc = 0;
+    for (var i=0;i<tiers.length;i++){ acc += w[tiers[i]]; if (r <= acc) return tiers[i]; }
+    return tiers[tiers.length-1];
+  }
+
+  var ballQueue = 0;
+  var ballShowing = false;
+
+  function queueBallDrops(n){
+    ballQueue += n;
+    if (!ballShowing) showNextBall();
+  }
+
+  function showNextBall(){
+    if (ballQueue <= 0) { ballShowing = false; return; }
+    ballQueue -= 1;
+    ballShowing = true;
+    spawnBall();
+  }
+
+  function spawnBall(){
+    var ballKey = ballTierForStreak(state.streak);
+    var ballDef = BALL_WEIGHTS[ballKey];
+    var overlay = document.getElementById('ball-overlay');
+    var stage = document.getElementById('ball-stage');
+    var caption = document.getElementById('ball-caption');
+    var cont = document.getElementById('ball-continue');
+    cont.style.display = 'none';
+    caption.textContent = ballDef.label + ' incoming...';
+    stage.innerHTML = '<div id="ball-visual" class="ball-drop-anim" style="width:100px;height:100px;border-radius:50%;margin:20px auto 0;position:relative;background:linear-gradient(to bottom, ' + ballDef.colorTop + ' 0%, ' + ballDef.colorTop + ' 48%, #1a1c20 48%, #1a1c20 52%, #f0f0f0 52%, #f0f0f0 100%);box-shadow:0 4px 14px rgba(0,0,0,0.5);"><div style="position:absolute;top:50%;left:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;background:#f0f0f0;border:3px solid #1a1c20;"></div></div>';
+    overlay.style.display = 'flex';
+
+    var ballVisual = document.getElementById('ball-visual');
+    ballVisual.addEventListener('animationend', function(){
+      ballVisual.classList.remove('ball-drop-anim');
+      ballVisual.classList.add('ball-ready');
+      caption.textContent = 'Tap the ball to open it';
+      ballVisual.onclick = function(){ openBall(ballVisual, ballKey, caption, cont, overlay); };
+    }, { once: true });
+  }
+
+  function openBall(ballVisual, ballKey, caption, cont, overlay){
+    ballVisual.onclick = null;
+    ballVisual.classList.remove('ball-ready');
+    ballVisual.classList.add('ball-shake-anim');
+    caption.textContent = '...';
+
+    var poolUnlocked = poolUnlockedForStreak(state.streak);
+    var chosenTier = pickTier(ballKey, poolUnlocked);
+    var pool = TIER_POOLS[chosenTier];
+    var mon = pool[Math.floor(Math.random()*pool.length)];
+    var shiny = Math.random() < SHINY_CHANCE;
+
+    setTimeout(function(){
+      var flash = document.createElement('div');
+      flash.className = 'ball-flash';
+      ballVisual.appendChild(flash);
+      setTimeout(function(){
+        revealMon(mon, shiny, caption, cont, overlay);
+      }, 260);
+    }, 1080);
+  }
+
+  function revealMon(mon, shiny, caption, cont, overlay){
+    var stage = document.getElementById('ball-stage');
+    var img = spriteUrl(mon.id, shiny);
+    stage.innerHTML = '<div style="position:relative;width:140px;height:140px;display:flex;align-items:center;justify-content:center;">' +
+      (shiny ? '<span style="position:absolute;top:0;right:6px;font-size:20px;color:#f4c56b;animation:sparkleSpin 1.6s linear infinite;">\u2726</span>' : '') +
+      '<img src="' + img + '" style="width:110px;height:110px;image-rendering:pixelated;" />' +
+      '</div>';
+    caption.innerHTML = (shiny ? '<span style="color:#f4c56b;">Shiny! </span>' : '') + 'Gotcha! ' + mon.name + ' was caught.';
+    cont.style.display = 'inline-block';
+    cont.onclick = function(){
+      overlay.style.display = 'none';
+      showNextBall();
+    };
+    recordCatch(mon, shiny);
+  }
+
+  function recordCatch(mon, shiny){
+    var rec = state.pokedex[mon.id] || { count: 0, shiny: false };
+    rec.count += 1;
+    if (shiny) rec.shiny = true;
+    state.pokedex[mon.id] = rec;
+    save();
+    renderDex();
+  }
+
+  function toggleQuest(id){
+    var q = QUESTS.find(function(x){ return x.id===id; });
+    var wasDone = state.today[id];
+    var prevLevel = computeLevel(state.xp).level;
+    var delta = wasDone ? -q.xp : q.xp;
+    state.today[id] = !wasDone;
+    state.xp += delta;
+    if (state.xp < 0) state.xp = 0;
+    state.today.xpEarned = (state.today.xpEarned || 0) + delta;
+
+    if (!wasDone && state.today.protein && state.today.workout && state.today.sleep && state.lastActiveDate !== state.today.date) {
+      state.lastActiveDate = state.today.date;
+    }
+
+    var newBadges = checkBadges();
+    var newLevel = computeLevel(state.xp).level;
+    save();
+    render();
+    if (!wasDone) fireConfetti();
+    if (newLevel > prevLevel) {
+      fireLevelUpConfetti();
+      queueBallDrops(newLevel - prevLevel);
+    }
+    if (newBadges.length) revealBadge(newBadges[0]);
+  }
+
+  function toggleWeighIn(){
+    var was = state.week.weighIn;
+    var prevLevel = computeLevel(state.xp).level;
+    var delta = was ? -25 : 25;
+    state.week.weighIn = !was;
+    state.xp += delta;
+    if (state.xp < 0) state.xp = 0;
+    state.today.xpEarned = (state.today.xpEarned || 0) + delta;
+    var newLevel = computeLevel(state.xp).level;
+    save();
+    render();
+    if (!was) fireConfetti();
+    if (newLevel > prevLevel) {
+      fireLevelUpConfetti();
+      queueBallDrops(newLevel - prevLevel);
+    }
+  }
+
+  function formatHistoryDate(dstr){
+    var d = new Date(dstr + 'T00:00:00');
+    var t = new Date(todayStr() + 'T00:00:00');
+    var diff = Math.round((t - d) / 86400000);
+    if (diff === 0) return 'Today';
+    if (diff === 1) return 'Yesterday';
+    return d.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+  }
+
+  function revealBadge(badge){
+    var overlay = document.getElementById('reveal-overlay');
+    var card = document.getElementById('reveal-card');
+    card.style.background = '#1c2027';
+    card.style.border = '1px solid #2a2f38';
+    card.innerHTML = '<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#93a0b0;font-size:13px;letter-spacing:1px;">TAP TO REVEAL</div>';
+    overlay.style.display = 'flex';
+
+    card.onclick = function(){
+      card.style.background = badge.bg;
+      if (badge.holo) {
+        card.style.backgroundSize = '400% 400%';
+        card.style.animation = 'shimmer 2.5s linear infinite';
+      }
+      card.style.border = 'none';
+      card.innerHTML = '<div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#171a20;font-weight:700;">' +
+        '<div style="font-size:32px;">\u2605</div>' +
+        '<div style="font-size:15px;">' + badge.name + '</div>' +
+        '<div style="font-size:11px;font-weight:600;opacity:0.75;">UNLOCKED</div>' +
+        '</div>';
+      card.onclick = function(){ overlay.style.display = 'none'; };
+    };
+  }
+
+  window.switchTab = function(tab){
+    var trainBtn = document.getElementById('tab-btn-training');
+    var dexBtn = document.getElementById('tab-btn-dex');
+    var trainTab = document.getElementById('tab-training');
+    var dexTab = document.getElementById('tab-dex');
+    if (tab === 'training') {
+      trainTab.style.display = '';
+      dexTab.style.display = 'none';
+      trainBtn.style.background = '#1e232b';
+      trainBtn.style.borderColor = '#3a4150';
+      trainBtn.style.color = '#eef1f5';
+      dexBtn.style.background = 'transparent';
+      dexBtn.style.borderColor = '#2a2f38';
+      dexBtn.style.color = '#93a0b0';
+    } else {
+      trainTab.style.display = 'none';
+      dexTab.style.display = '';
+      dexBtn.style.background = '#1e232b';
+      dexBtn.style.borderColor = '#3a4150';
+      dexBtn.style.color = '#eef1f5';
+      trainBtn.style.background = 'transparent';
+      trainBtn.style.borderColor = '#2a2f38';
+      trainBtn.style.color = '#93a0b0';
+    }
+  };
+
+  function render(){
+    var lv = computeLevel(state.xp);
+    document.getElementById('level-num').textContent = lv.level;
+    document.getElementById('xp-label').textContent = lv.into + ' / ' + lv.req + ' XP';
+    document.getElementById('xp-bar').style.width = Math.round((lv.into/lv.req)*100) + '%';
+    document.getElementById('streak-num').textContent = state.streak;
+
+    var ballKey = ballTierForStreak(state.streak);
+    var poolMsg = poolUnlockedForStreak(state.streak) ? ' \u2022 rare pool unlocked' : ' \u2022 30-day streak unlocks rare pool';
+    document.getElementById('ball-tier-note').textContent = 'Current ball: ' + BALL_WEIGHTS[ballKey].label + poolMsg;
+
+    var grid = document.getElementById('quest-grid');
+    grid.innerHTML = '';
+    QUESTS.forEach(function(q){
+      var done = state.today[q.id];
+      var el = document.createElement('div');
+      el.className = 'quest-card' + (done ? ' done' : '');
+      el.style.setProperty('--rc', q.color);
+      el.innerHTML = '<div class="quest-check"></div>' +
+        '<span class="quest-icon" style="color:' + q.color + '">' + q.icon + '</span>' +
+        '<div class="quest-name">' + q.name + '</div>' +
+        '<div class="quest-xp">+' + q.xp + ' XP</div>';
+      el.onclick = function(){ toggleQuest(q.id); };
+      grid.appendChild(el);
+    });
+
+    var boss = document.getElementById('boss-card');
+    var wDone = state.week.weighIn;
+    boss.innerHTML = '';
+    var bEl = document.createElement('div');
+    bEl.className = 'quest-card' + (wDone ? ' done' : '');
+    bEl.style.setProperty('--rc', '#f4c56b');
+    bEl.style.display = 'flex';
+    bEl.style.alignItems = 'center';
+    bEl.style.gap = '14px';
+    bEl.innerHTML = '<span class="quest-icon" style="margin:0;color:#f4c56b;font-size:26px;">\u25C6</span>' +
+      '<div style="flex:1;"><div class="quest-name" style="font-size:14px;">Weekly weigh-in</div>' +
+      '<div class="quest-xp">Same day, same conditions &bull; +25 XP</div></div>' +
+      '<div class="quest-check" style="position:static;"></div>';
+    bEl.onclick = function(){ toggleWeighIn(); };
+    boss.appendChild(bEl);
+
+    var strip = document.getElementById('badge-strip');
+    strip.innerHTML = '';
+    BADGES.forEach(function(b){
+      var unlocked = state.badges.indexOf(b.id) !== -1;
+      var el = document.createElement('div');
+      el.className = 'badge-slot ' + (unlocked ? 'unlocked' : 'locked');
+      if (unlocked) {
+        el.style.background = b.bg;
+        if (b.holo) { el.style.backgroundSize = '400% 400%'; el.style.animation = 'shimmer 3s linear infinite'; }
+        el.innerHTML = '<div style="font-size:18px;">\u2605</div><div>' + b.name + '</div>';
+      } else {
+        el.innerHTML = '<div style="font-size:18px;">?</div><div>' + b.streak + '-day streak</div>';
+      }
+      strip.appendChild(el);
+    });
+
+    var histList = document.getElementById('history-list');
+    histList.innerHTML = '';
+    var todayCompleted = QUESTS.filter(function(q){ return state.today[q.id]; }).map(function(q){ return q.id; });
+    var entries = [{ date: state.today.date, xp: state.today.xpEarned || 0, quests: todayCompleted }].concat(state.history);
+    entries.slice(0, 14).forEach(function(e){
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#171a20;border:1px solid #2a2f38;border-radius:10px;';
+      var iconsHtml = e.quests.map(function(qid){
+        var q = QUESTS.find(function(x){ return x.id === qid; });
+        return q ? '<span style="color:' + q.color + ';font-size:13px;margin-right:4px;">' + q.icon + '</span>' : '';
+      }).join('');
+      var xpColor = e.xp > 0 ? '#2dd4bf' : (e.xp < 0 ? '#e2555a' : '#93a0b0');
+      row.innerHTML = '<div style="display:flex;align-items:center;gap:10px;">' +
+        '<span style="font-size:13px;color:#eef1f5;font-weight:600;min-width:60px;">' + formatHistoryDate(e.date) + '</span>' +
+        '<span>' + (iconsHtml || '<span style="font-size:11px;color:#4a5160;">no quests</span>') + '</span>' +
+        '</div>' +
+        '<span style="font-size:13px;font-weight:700;color:' + xpColor + ';">' + (e.xp > 0 ? '+' : '') + e.xp + ' XP</span>';
+      histList.appendChild(row);
+    });
+  }
+
+  function buildDexCard(p){
+    var caught = state.pokedex[p.id];
+    var card = document.createElement('div');
+    card.className = 'dex-card' + (caught ? '' : ' uncaught');
+    var numStr = '#' + String(p.id).padStart(3,'0');
+    if (caught) {
+      var mainImg = spriteUrl(p.id, caught.shiny);
+      card.innerHTML =
+        '<img src="' + mainImg + '" style="width:48px;height:48px;image-rendering:pixelated;" />' +
+        (caught.shiny ? '<img src="' + spriteUrl(p.id,false) + '" class="dex-shiny-thumb" style="image-rendering:pixelated;" />' : '') +
+        (caught.shiny ? '<span class="dex-sparkle">\u2726</span>' : '') +
+        '<div class="dex-name">' + p.name + '</div>' +
+        '<div class="dex-num">' + numStr + '</div>' +
+        '<div class="dex-count">x' + caught.count + '</div>';
+    } else {
+      card.innerHTML =
+        '<img src="' + spriteUrl(p.id,false) + '" style="width:48px;height:48px;filter:brightness(0);opacity:0.5;image-rendering:pixelated;" />' +
+        '<div class="dex-name">???</div>' +
+        '<div class="dex-num">' + numStr + '</div>';
+    }
+    return card;
+  }
+
+  function renderDex(){
+    var gen1 = POKEDEX.filter(function(p){ return p.id <= 151; });
+    var gen2 = POKEDEX.filter(function(p){ return p.id > 151; });
+    var caughtGen1 = gen1.filter(function(p){ return state.pokedex[p.id]; }).length;
+    var caughtGen2 = gen2.filter(function(p){ return state.pokedex[p.id]; }).length;
+
+    document.getElementById('dex-gen1-count').textContent = caughtGen1 + ' / ' + gen1.length;
+    document.getElementById('dex-gen1-bar').style.width = Math.round((caughtGen1/gen1.length)*100) + '%';
+    document.getElementById('dex-gen2-count').textContent = caughtGen2 + ' / ' + gen2.length;
+    document.getElementById('dex-gen2-bar').style.width = Math.round((caughtGen2/gen2.length)*100) + '%';
+
+    var g1Grid = document.getElementById('dex-gen1-grid');
+    var g2Grid = document.getElementById('dex-gen2-grid');
+    g1Grid.innerHTML = '';
+    g2Grid.innerHTML = '';
+    gen1.forEach(function(p){ g1Grid.appendChild(buildDexCard(p)); });
+    gen2.forEach(function(p){ g2Grid.appendChild(buildDexCard(p)); });
+  }
+
+  load();
+})();
+</script>
+</body>
+</html>
