@@ -14,10 +14,11 @@
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
   html, body { margin:0; padding:0; background:#0e1014; min-height:100vh; }
-  body { padding: 20px 16px 40px; -webkit-tap-highlight-color: transparent; }
+  body { padding: calc(env(safe-area-inset-top, 0px) + 56px) 16px 40px; -webkit-tap-highlight-color: transparent; }
 </style>
 </head>
 <body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/canvas-confetti/1.9.2/confetti.browser.min.js"></script>
 <div id="training-log-root">
   <h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">Training log: track daily quests for protein, workout, sleep and focus work to earn XP, build streaks, and unlock badges.</h2>
 
@@ -52,7 +53,10 @@
     <div id="boss-card" style="margin-bottom:24px;"></div>
 
     <div style="font-size:12px;font-weight:600;color:#93a0b0;letter-spacing:0.8px;margin-bottom:10px;">CARD COLLECTION</div>
-    <div id="badge-strip" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:10px;"></div>
+    <div id="badge-strip" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:10px;margin-bottom:24px;"></div>
+
+    <div style="font-size:12px;font-weight:600;color:#93a0b0;letter-spacing:0.8px;margin-bottom:10px;">XP HISTORY</div>
+    <div id="history-list" style="display:flex;flex-direction:column;gap:8px;"></div>
 
   </div>
 
@@ -110,9 +114,10 @@
       xp: 0,
       streak: 0,
       lastActiveDate: null,
-      today: { date: todayStr(), protein:false, workout:false, sleep:false, focus:false },
+      today: { date: todayStr(), protein:false, workout:false, sleep:false, focus:false, xpEarned:0 },
       week: { id: weekStr(), weighIn: false },
-      badges: []
+      badges: [],
+      history: []
     };
   }
 
@@ -123,6 +128,8 @@
     } catch(e) {
       state = defaultState();
     }
+    if (typeof state.today.xpEarned !== 'number') state.today.xpEarned = 0;
+    if (!Array.isArray(state.history)) state.history = [];
     rolloverIfNeeded();
     render();
   }
@@ -143,7 +150,10 @@
         state.streak = 0;
       }
       state.lastActiveDate = today;
-      state.today = { date: today, protein:false, workout:false, sleep:false, focus:false };
+      var completed = QUESTS.filter(function(q){ return state.today[q.id]; }).map(function(q){ return q.id; });
+      state.history.unshift({ date: state.today.date, xp: state.today.xpEarned || 0, quests: completed });
+      if (state.history.length > 30) state.history = state.history.slice(0, 30);
+      state.today = { date: today, protein:false, workout:false, sleep:false, focus:false, xpEarned:0 };
     }
     var wk = weekStr();
     if (state.week.id !== wk) {
@@ -151,8 +161,30 @@
     }
   }
 
-  function level(){ return Math.floor(state.xp/150)+1; }
-  function xpIntoLevel(){ return state.xp % 150; }
+  function xpForLevel(lvl){ return 150 + (lvl-1)*20; }
+  function computeLevel(totalXp){
+    var lvl = 1, remaining = totalXp, req = xpForLevel(lvl);
+    while (remaining >= req) {
+      remaining -= req;
+      lvl++;
+      req = xpForLevel(lvl);
+    }
+    return { level: lvl, into: remaining, req: req };
+  }
+
+  function fireConfetti(){
+    if (typeof confetti !== 'function') return;
+    confetti({ particleCount: 40, spread: 55, startVelocity: 28, origin: { x: 0.5, y: 0.55 }, colors: ['#2dd4bf','#5b9df0','#a78bfa','#f4c56b'] });
+  }
+  function fireLevelUpConfetti(){
+    if (typeof confetti !== 'function') return;
+    var end = Date.now() + 1200;
+    (function frame(){
+      confetti({ particleCount: 6, angle: 60, spread: 60, origin: { x: 0, y: 0.4 }, colors: ['#6ee7f2','#b38af0','#f4c56b'] });
+      confetti({ particleCount: 6, angle: 120, spread: 60, origin: { x: 1, y: 0.4 }, colors: ['#6ee7f2','#b38af0','#f4c56b'] });
+      if (Date.now() < end) requestAnimationFrame(frame);
+    })();
+  }
 
   function checkBadges(){
     var newly = [];
@@ -168,27 +200,48 @@
   function toggleQuest(id){
     var q = QUESTS.find(function(x){ return x.id===id; });
     var wasDone = state.today[id];
+    var prevLevel = computeLevel(state.xp).level;
+    var delta = wasDone ? -q.xp : q.xp;
     state.today[id] = !wasDone;
-    state.xp += wasDone ? -q.xp : q.xp;
+    state.xp += delta;
     if (state.xp < 0) state.xp = 0;
+    state.today.xpEarned = (state.today.xpEarned || 0) + delta;
 
     if (!wasDone && state.today.protein && state.today.workout && state.today.sleep && state.lastActiveDate !== state.today.date) {
       state.lastActiveDate = state.today.date;
     }
 
     var newBadges = checkBadges();
+    var newLevel = computeLevel(state.xp).level;
     save();
     render();
+    if (!wasDone) fireConfetti();
+    if (newLevel > prevLevel) fireLevelUpConfetti();
     if (newBadges.length) revealBadge(newBadges[0]);
   }
 
   function toggleWeighIn(){
     var was = state.week.weighIn;
+    var prevLevel = computeLevel(state.xp).level;
+    var delta = was ? -25 : 25;
     state.week.weighIn = !was;
-    state.xp += was ? -25 : 25;
+    state.xp += delta;
     if (state.xp < 0) state.xp = 0;
+    state.today.xpEarned = (state.today.xpEarned || 0) + delta;
+    var newLevel = computeLevel(state.xp).level;
     save();
     render();
+    if (!was) fireConfetti();
+    if (newLevel > prevLevel) fireLevelUpConfetti();
+  }
+
+  function formatHistoryDate(dstr){
+    var d = new Date(dstr + 'T00:00:00');
+    var t = new Date(todayStr() + 'T00:00:00');
+    var diff = Math.round((t - d) / 86400000);
+    if (diff === 0) return 'Today';
+    if (diff === 1) return 'Yesterday';
+    return d.toLocaleDateString('en-US', { month:'short', day:'numeric' });
   }
 
   function revealBadge(badge){
@@ -216,9 +269,10 @@
   }
 
   function render(){
-    document.getElementById('level-num').textContent = level();
-    document.getElementById('xp-label').textContent = xpIntoLevel() + ' / 150 XP';
-    document.getElementById('xp-bar').style.width = Math.round((xpIntoLevel()/150)*100) + '%';
+    var lv = computeLevel(state.xp);
+    document.getElementById('level-num').textContent = lv.level;
+    document.getElementById('xp-label').textContent = lv.into + ' / ' + lv.req + ' XP';
+    document.getElementById('xp-bar').style.width = Math.round((lv.into/lv.req)*100) + '%';
     document.getElementById('streak-num').textContent = state.streak;
 
     var grid = document.getElementById('quest-grid');
@@ -267,6 +321,30 @@
       }
       strip.appendChild(el);
     });
+
+    var histList = document.getElementById('history-list');
+    histList.innerHTML = '';
+    var todayCompleted = QUESTS.filter(function(q){ return state.today[q.id]; }).map(function(q){ return q.id; });
+    var entries = [{ date: state.today.date, xp: state.today.xpEarned || 0, quests: todayCompleted }].concat(state.history);
+    if (entries.length === 0) {
+      histList.innerHTML = '<div style="font-size:12px;color:#4a5160;padding:8px 2px;">No activity logged yet.</div>';
+    } else {
+      entries.slice(0, 14).forEach(function(e){
+        var row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#171a20;border:1px solid #2a2f38;border-radius:10px;';
+        var iconsHtml = e.quests.map(function(qid){
+          var q = QUESTS.find(function(x){ return x.id === qid; });
+          return q ? '<span style="color:' + q.color + ';font-size:13px;margin-right:4px;">' + q.icon + '</span>' : '';
+        }).join('');
+        var xpColor = e.xp > 0 ? '#2dd4bf' : (e.xp < 0 ? '#e2555a' : '#93a0b0');
+        row.innerHTML = '<div style="display:flex;align-items:center;gap:10px;">' +
+          '<span style="font-size:13px;color:#eef1f5;font-weight:600;min-width:60px;">' + formatHistoryDate(e.date) + '</span>' +
+          '<span>' + (iconsHtml || '<span style="font-size:11px;color:#4a5160;">no quests</span>') + '</span>' +
+          '</div>' +
+          '<span style="font-size:13px;font-weight:700;color:' + xpColor + ';">' + (e.xp > 0 ? '+' : '') + e.xp + ' XP</span>';
+        histList.appendChild(row);
+      });
+    }
   }
 
   load();
